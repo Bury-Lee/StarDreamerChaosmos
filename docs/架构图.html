@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StarDreamerChaosmos · 目标架构图</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'JetBrains Mono', monospace; background: #020617; min-height: 100vh; padding: 2rem; color: white; }
+    .container { max-width: 1520px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot { width: 12px; height: 12px; background: #22d3ee; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .diagram-container { background: rgba(15,23,42,0.5); border-radius: 1rem; border: 1px solid #1e293b; padding: 1.5rem; overflow-x: auto; }
+    svg { width: 100%; min-width: 1150px; display: block; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    .card { background: rgba(15,23,42,0.5); border-radius: 0.75rem; border: 1px solid #1e293b; padding: 1.25rem; }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.cyan { background: #22d3ee; } .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; } .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; } .card-dot.orange { background: #fb923c; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
+    .card li { margin-bottom: 0.375rem; }
+    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+    .toolbar { display: flex; gap: 0.5rem; margin-left: auto; flex-shrink: 0; align-items: center; }
+    .toolbar-toggle { background: transparent; border: none; color: #475569; cursor: pointer; font-size: 1.25rem; line-height: 1; padding: 0.25rem 0.5rem; border-radius: 0.375rem; transition: color .2s, background .2s; }
+    .toolbar-toggle:hover { color: #94a3b8; background: rgba(30,41,59,.5); }
+    .toolbar-actions { display: none; gap: 0.5rem; }
+    .toolbar.expanded .toolbar-actions { display: flex; }
+    .toolbar-actions button { background: rgba(30,41,59,.8); border: 1px solid #334155; color: #94a3b8; padding: .375rem .75rem; border-radius: .375rem; font-family: inherit; font-size: .75rem; cursor: pointer; transition: all .2s; white-space: nowrap; }
+    .toolbar-actions button:hover { background: rgba(51,65,85,.8); color: white; border-color: #475569; }
+    @media print { body { background: #020617; padding: 1rem; } .toolbar { display: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="container" id="report-container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>StarDreamerChaosmos · 目标架构图</h1>
+        <div class="toolbar">
+          <div class="toolbar-actions">
+            <button onclick="copyAsImage(this)">📋 Copy</button>
+            <button onclick="downloadPNG(this)">🖼️ PNG</button>
+            <button onclick="downloadPDF(this)">📄 PDF</button>
+          </div>
+          <button class="toolbar-toggle" onclick="this.parentElement.classList.toggle('expanded')" title="Export options" aria-label="Export options">⋯</button>
+        </div>
+      </div>
+      <p class="subtitle">设计是微服务,部署是单体 · 路由 → 业务函数(校验+认证) → 全局拨号器 → 微服务 → 响应</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1480 1600">
+        <defs>
+          <marker id="ah" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <marker id="ahs" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto">
+            <polygon points="10 0, 0 3.5, 10 7" fill="#64748b" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- arrows -->
+        <line x1="740" y1="82" x2="740" y2="110" stroke="#22d3ee" stroke-width="1.6" marker-end="url(#ah)"/>
+        <line x1="740" y1="252" x2="740" y2="280" stroke="#22d3ee" stroke-width="1.6" marker-end="url(#ah)"/>
+        <line x1="740" y1="346" x2="740" y2="374" stroke="#34d399" stroke-width="1.6" marker-end="url(#ah)"/>
+        <line x1="720" y1="508" x2="720" y2="536" stroke="#fb923c" stroke-width="1.6" marker-end="url(#ah)" marker-start="url(#ahs)"/>
+        <text x="732" y="529" fill="#94a3b8" font-size="9">总线/事件</text>
+        <line x1="740" y1="642" x2="740" y2="670" stroke="#fb923c" stroke-width="1.6" marker-end="url(#ah)" marker-start="url(#ahs)"/>
+        <line x1="740" y1="772" x2="740" y2="800" stroke="#a78bfa" stroke-width="1.6" marker-end="url(#ah)" marker-start="url(#ahs)"/>
+        <line x1="740" y1="1102" x2="740" y2="1120" stroke="#34d399" stroke-width="1.6" marker-end="url(#ah)" marker-start="url(#ahs)"/>
+        <line x1="740" y1="1202" x2="740" y2="1220" stroke="#fbbf24" stroke-width="1.6" marker-end="url(#ah)" marker-start="url(#ahs)"/>
+        <line x1="740" y1="1298" x2="740" y2="1326" stroke="#34d399" stroke-width="1.6" marker-end="url(#ah)"/>
+        <line x1="720" y1="1403" x2="758" y2="1403" stroke="#a78bfa" stroke-width="1.4" marker-end="url(#ah)" marker-start="url(#ahs)"/>
+        <!-- gateway route -->
+        <path d="M 1420 210 L 1448 210 L 1448 940 L 1385 940" fill="none" stroke="#22d3ee" stroke-width="1.2" stroke-dasharray="5,5" marker-end="url(#ah)"/>
+        <text x="1455" y="600" fill="#22d3ee" font-size="8" transform="rotate(90 1455 600)">路由命中 → 业务函数</text>
+
+        <!-- 入口 -->
+        <rect x="620" y="24" width="240" height="58" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="740" y="49" fill="white" font-size="12" font-weight="600" text-anchor="middle">用户 / 浏览器</text>
+        <text x="740" y="67" fill="#94a3b8" font-size="9" text-anchor="middle">网页端 · 一个网址三线通行</text>
+
+        <!-- 网关 -->
+        <rect x="60" y="112" width="1360" height="140" rx="10" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.6"/>
+        <text x="740" y="140" fill="white" font-size="13" font-weight="700" text-anchor="middle">统一网关(唯一入口)</text>
+        <text x="740" y="158" fill="#94a3b8" font-size="9" text-anchor="middle">路由注册表 + 公共关卡 · 博客 /api · 视频 /api + /ws · 网盘 /api/v1 · 静态资源与 SPA</text>
+        <rect x="80" y="172" width="560" height="64" rx="6" fill="rgba(15,23,42,0.6)" stroke="#22d3ee" stroke-width="1.1"/>
+        <text x="360" y="198" fill="white" font-size="10" font-weight="600" text-anchor="middle">路由注册表</text>
+        <text x="360" y="218" fill="#94a3b8" font-size="8" text-anchor="middle">业务模块注册路由 · 注册即副作用(Disposer 撤销)</text>
+        <rect x="660" y="172" width="760" height="64" rx="6" fill="rgba(15,23,42,0.6)" stroke="#334155" stroke-width="1.1"/>
+        <text x="1040" y="198" fill="white" font-size="10" font-weight="600" text-anchor="middle">公共关卡(中间件)</text>
+        <text x="1040" y="218" fill="#94a3b8" font-size="8" text-anchor="middle">安全头 · 跨域 · 身份识别 · 管理员校验 · 验证码 · 限流 · 请求准入 · 执行池 · 日志 · 崩溃兜底</text>
+
+        <!-- 宿主 -->
+        <rect x="60" y="282" width="1360" height="64" rx="10" fill="rgba(30,41,59,0.45)" stroke="#94a3b8" stroke-width="1.4"/>
+        <text x="740" y="308" fill="white" font-size="13" font-weight="700" text-anchor="middle">统一宿主(装配者)</text>
+        <text x="740" y="328" fill="#94a3b8" font-size="9" text-anchor="middle">读配置 · 预挂共享能力 · 注册组件 · 按蓝图启停 · 逆序停机</text>
+
+        <!-- 内核 -->
+        <rect x="60" y="376" width="1360" height="132" rx="10" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.6"/>
+        <text x="740" y="404" fill="white" font-size="13" font-weight="700" text-anchor="middle">GoTenon 插件内核</text>
+        <text x="740" y="422" fill="#94a3b8" font-size="9" text-anchor="middle">依赖图(DAG) · 生命周期 · 收敛调度 · 内核索引 · 消息与信号 · 可逆副作用</text>
+        <rect x="80" y="434" width="248" height="58" rx="5" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.1"/>
+        <text x="204" y="458" fill="white" font-size="10" font-weight="600" text-anchor="middle">依赖与调度</text>
+        <text x="204" y="478" fill="#94a3b8" font-size="8" text-anchor="middle">Inject · 环检测 · 波次</text>
+        <rect x="338" y="434" width="248" height="58" rx="5" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.1"/>
+        <text x="462" y="458" fill="white" font-size="10" font-weight="600" text-anchor="middle">生命周期</text>
+        <text x="462" y="478" fill="#94a3b8" font-size="8" text-anchor="middle">Apply→Start→Run→End</text>
+        <rect x="596" y="434" width="248" height="58" rx="5" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.1"/>
+        <text x="720" y="458" fill="white" font-size="10" font-weight="600" text-anchor="middle">上下文与作用域</text>
+        <text x="720" y="478" fill="#94a3b8" font-size="8" text-anchor="middle">Extend · Isolate · 槽位</text>
+        <rect x="854" y="434" width="248" height="58" rx="5" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.1"/>
+        <text x="978" y="458" fill="white" font-size="10" font-weight="600" text-anchor="middle">内核索引</text>
+        <text x="978" y="478" fill="#94a3b8" font-size="8" text-anchor="middle">能力发现 · 订阅</text>
+        <rect x="1112" y="434" width="248" height="58" rx="5" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1.1"/>
+        <text x="1236" y="458" fill="white" font-size="10" font-weight="600" text-anchor="middle">消息与信号</text>
+        <text x="1236" y="478" fill="#94a3b8" font-size="8" text-anchor="middle">Message · Signal</text>
+
+        <!-- bus -->
+        <rect x="60" y="538" width="1360" height="104" rx="10" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1.6"/>
+        <text x="740" y="566" fill="white" font-size="13" font-weight="700" text-anchor="middle">bus · 消息底座(mq)</text>
+        <text x="740" y="584" fill="#fdba74" font-size="9" text-anchor="middle">所有状态变更的唯一出口 · 发布/订阅/转发都经内核消息</text>
+        <rect x="80" y="596" width="300" height="38" rx="5" fill="rgba(15,23,42,0.5)" stroke="#fb923c" stroke-width="1"/>
+        <text x="230" y="620" fill="#fdba74" font-size="9" text-anchor="middle">主题订阅 / 异步队列 / 背压</text>
+        <rect x="390" y="596" width="300" height="38" rx="5" fill="rgba(15,23,42,0.5)" stroke="#fb923c" stroke-width="1"/>
+        <text x="540" y="620" fill="#fdba74" font-size="9" text-anchor="middle">转发 Forward(请内核代发)</text>
+        <rect x="700" y="596" width="300" height="38" rx="5" fill="rgba(15,23,42,0.5)" stroke="#fb923c" stroke-width="1"/>
+        <text x="850" y="620" fill="#fdba74" font-size="9" text-anchor="middle">状态汇聚 state.changed</text>
+        <rect x="1010" y="596" width="350" height="38" rx="5" fill="rgba(15,23,42,0.5)" stroke="#fb923c" stroke-width="1"/>
+        <text x="1185" y="620" fill="#fdba74" font-size="9" text-anchor="middle">生命周期桥接 component.ready / gone</text>
+
+        <!-- 支柱 -->
+        <rect x="60" y="672" width="660" height="100" rx="10" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.6"/>
+        <text x="390" y="698" fill="white" font-size="12" font-weight="700" text-anchor="middle">flag · 支柱一(命令行 / 后功能调度)</text>
+        <text x="390" y="720" fill="#94a3b8" font-size="9" text-anchor="middle">解析指令 · 前功能 Start 执行</text>
+        <text x="390" y="738" fill="#94a3b8" font-size="9" text-anchor="middle">后功能:登记待办 → 等组件上线 → 让内核转发</text>
+        <text x="390" y="756" fill="#fbbf24" font-size="9" text-anchor="middle">help / plugin details / init-setting / copy-setting</text>
+
+        <rect x="760" y="672" width="660" height="100" rx="10" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.6"/>
+        <text x="1090" y="698" fill="white" font-size="12" font-weight="700" text-anchor="middle">config · 支柱二(配置)</text>
+        <text x="1090" y="720" fill="#94a3b8" font-size="9" text-anchor="middle">内置默认 &lt; 文件 &lt; 环境变量 · 严格校验</text>
+        <text x="1090" y="738" fill="#94a3b8" font-size="9" text-anchor="middle">顶层段 = 整组件配置 · 键归一为小写</text>
+        <text x="1090" y="756" fill="#fbbf24" font-size="9" text-anchor="middle">Snapshot(Name) 取段 · utils 取值</text>
+
+        <!-- 组件层 -->
+        <rect x="60" y="802" width="1360" height="300" rx="12" fill="rgba(76,29,149,0.10)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="80" y="822" fill="#a78bfa" font-size="11" font-weight="600">业务组件(按业务域拆,跨域公共上抽)</text>
+
+        <rect x="80" y="834" width="1320" height="54" rx="8" fill="rgba(136,19,55,0.35)" stroke="#fb7185" stroke-width="1.3"/>
+        <text x="740" y="858" fill="white" font-size="11" font-weight="600" text-anchor="middle">脚手架组件(地基,所有业务依赖)</text>
+        <text x="740" y="878" fill="#fecdd3" font-size="9" text-anchor="middle">auth(认证/登录) · register(注册) · 会话 / 权限</text>
+
+        <rect x="80" y="900" width="380" height="192" rx="8" fill="rgba(15,23,42,0.5)" stroke="#a78bfa" stroke-width="1.2"/>
+        <text x="270" y="924" fill="white" font-size="11" font-weight="600" text-anchor="middle">共享组件(只做一份)</text>
+        <text x="270" y="950" fill="#94a3b8" font-size="9" text-anchor="middle">user(用户) · comment(评论)</text>
+        <text x="270" y="970" fill="#94a3b8" font-size="9" text-anchor="middle">interaction(互动) · notify(通知)</text>
+        <text x="270" y="990" fill="#94a3b8" font-size="9" text-anchor="middle">search(搜索) · media(图片)</text>
+        <text x="270" y="1010" fill="#94a3b8" font-size="9" text-anchor="middle">log(日志) · im(私信)</text>
+        <text x="270" y="1040" fill="#c4b5fd" font-size="8" text-anchor="middle">用对象类型区分归属,绝不按线复制</text>
+        <text x="270" y="1058" fill="#c4b5fd" font-size="8" text-anchor="middle">各域都依赖它,但实现只有一份</text>
+
+        <rect x="480" y="900" width="920" height="192" rx="8" fill="rgba(15,23,42,0.35)" stroke="#334155" stroke-width="1" stroke-dasharray="6,4"/>
+        <text x="496" y="920" fill="#64748b" font-size="9">业务域组件(各域独有)</text>
+
+        <rect x="500" y="930" width="280" height="148" rx="6" fill="rgba(15,23,42,0.5)" stroke="#22d3ee" stroke-width="1.2"/>
+        <text x="640" y="954" fill="white" font-size="10" font-weight="600" text-anchor="middle">博客域</text>
+        <text x="640" y="980" fill="#94a3b8" font-size="9" text-anchor="middle">content(文章·动态)</text>
+        <text x="640" y="1000" fill="#94a3b8" font-size="9" text-anchor="middle">community(友链·公告·轮播)</text>
+        <text x="640" y="1020" fill="#94a3b8" font-size="9" text-anchor="middle">ai(智能助手)</text>
+        <text x="640" y="1046" fill="#67e8f9" font-size="8" text-anchor="middle">分类标签 · 审核</text>
+
+        <rect x="800" y="930" width="280" height="148" rx="6" fill="rgba(15,23,42,0.5)" stroke="#34d399" stroke-width="1.2"/>
+        <text x="940" y="954" fill="white" font-size="10" font-weight="600" text-anchor="middle">视频域</text>
+        <text x="940" y="976" fill="#94a3b8" font-size="8" text-anchor="middle">video · upload · play · vfile</text>
+        <text x="940" y="994" fill="#94a3b8" font-size="8" text-anchor="middle">collection · live · danmaku · admin</text>
+        <text x="940" y="1020" fill="#6ee7b7" font-size="8" text-anchor="middle">转码 · 弹幕 · 实时通道 /ws</text>
+
+        <rect x="1100" y="930" width="280" height="148" rx="6" fill="rgba(15,23,42,0.5)" stroke="#fbbf24" stroke-width="1.2"/>
+        <text x="1240" y="954" fill="white" font-size="10" font-weight="600" text-anchor="middle">网盘域</text>
+        <text x="1240" y="980" fill="#94a3b8" font-size="9" text-anchor="middle">meta(元数据)</text>
+        <text x="1240" y="1000" fill="#94a3b8" font-size="9" text-anchor="middle">storage(分片·副本)</text>
+        <text x="1240" y="1020" fill="#94a3b8" font-size="9" text-anchor="middle">disk-task(后台任务)</text>
+        <text x="1240" y="1040" fill="#94a3b8" font-size="9" text-anchor="middle">ping(探针)</text>
+        <text x="1240" y="1062" fill="#fde68a" font-size="8" text-anchor="middle">分片上传 · 秒传 · 分享</text>
+
+        <!-- 业务执行标准 -->
+        <rect x="60" y="1122" width="1360" height="80" rx="10" fill="rgba(6,78,59,0.35)" stroke="#34d399" stroke-width="1.4"/>
+        <text x="740" y="1145" fill="white" font-size="11" font-weight="700" text-anchor="middle">业务执行标准(每个业务函数同一条流水线)</text>
+        <rect x="80" y="1156" width="248" height="34" rx="5" fill="rgba(8,51,68,0.5)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="204" y="1178" fill="#a5f3fc" font-size="9" text-anchor="middle">① 路由命中</text>
+        <rect x="338" y="1156" width="248" height="34" rx="5" fill="rgba(8,51,68,0.5)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="462" y="1178" fill="#a5f3fc" font-size="9" text-anchor="middle">② 业务函数:参数校验 + 认证</text>
+        <rect x="596" y="1156" width="248" height="34" rx="5" fill="rgba(120,53,15,0.4)" stroke="#fbbf24" stroke-width="1"/>
+        <text x="720" y="1178" fill="#fde68a" font-size="9" text-anchor="middle">③ 全局拨号器</text>
+        <rect x="854" y="1156" width="248" height="34" rx="5" fill="rgba(6,78,59,0.5)" stroke="#34d399" stroke-width="1"/>
+        <text x="978" y="1178" fill="#6ee7b7" font-size="9" text-anchor="middle">④ 调用微服务</text>
+        <rect x="1112" y="1156" width="248" height="34" rx="5" fill="rgba(8,51,68,0.5)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="1236" y="1178" fill="#a5f3fc" font-size="9" text-anchor="middle">⑤ 统一信封返回响应</text>
+
+        <!-- 拨号器 -->
+        <rect x="60" y="1222" width="1360" height="76" rx="10" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.6"/>
+        <text x="740" y="1250" fill="white" font-size="12" font-weight="700" text-anchor="middle">全局拨号器组件(业务与微服务之间的唯一出口)</text>
+        <text x="740" y="1272" fill="#fde68a" font-size="9" text-anchor="middle">输入服务键 → 查地址表 → 负载均衡 · 单体走本地,拆分走远程:业务代码不变</text>
+        <text x="740" y="1289" fill="#94a3b8" font-size="8" text-anchor="middle">rpc.Dial("服务键") + RegisterResolver · sd:///服务键 · 轮询</text>
+
+        <!-- 服务 / 基础设施 -->
+        <rect x="60" y="1326" width="660" height="150" rx="10" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.4"/>
+        <text x="390" y="1354" fill="white" font-size="12" font-weight="700" text-anchor="middle">服务层(每个服务两半)</text>
+        <text x="390" y="1378" fill="#94a3b8" font-size="9" text-anchor="middle">client(按服务键调用) · server(实现) · 同形</text>
+        <text x="390" y="1398" fill="#94a3b8" font-size="9" text-anchor="middle">服务键 → 地址表 · 负载均衡 · 本地/远程一键切换</text>
+        <text x="390" y="1424" fill="#34d399" font-size="9" text-anchor="middle">只认服务名,不写死地址(将来可拆进程)</text>
+        <text x="390" y="1448" fill="#64748b" font-size="8" text-anchor="middle">user · content · video · meta · storage · …</text>
+
+        <rect x="760" y="1326" width="660" height="150" rx="10" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.4"/>
+        <text x="1090" y="1354" fill="white" font-size="12" font-weight="700" text-anchor="middle">基础设施(水电煤)</text>
+        <text x="900" y="1386" fill="#94a3b8" font-size="9" text-anchor="middle">数据库</text>
+        <text x="1000" y="1386" fill="#94a3b8" font-size="9" text-anchor="middle">缓存</text>
+        <text x="1110" y="1386" fill="#94a3b8" font-size="9" text-anchor="middle">对象存储</text>
+        <text x="1220" y="1386" fill="#94a3b8" font-size="9" text-anchor="middle">日志</text>
+        <text x="1310" y="1386" fill="#94a3b8" font-size="9" text-anchor="middle">鉴权</text>
+        <text x="1090" y="1416" fill="#94a3b8" font-size="9" text-anchor="middle">默认开箱即用:轻量数据库 + 本地存储</text>
+        <text x="1090" y="1438" fill="#c4b5fd" font-size="8" text-anchor="middle">生产可换 MySQL / PostgreSQL · MinIO / S3(抽象提前留好)</text>
+
+        <!-- legend -->
+        <text x="60" y="1512" fill="white" font-size="10" font-weight="600">Legend</text>
+        <rect x="60" y="1524" width="16" height="11" rx="2" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1"/>
+        <text x="84" y="1533" fill="#94a3b8" font-size="8">入口 / 宿主</text>
+        <rect x="240" y="1524" width="16" height="11" rx="2" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="264" y="1533" fill="#94a3b8" font-size="8">网关</text>
+        <rect x="350" y="1524" width="16" height="11" rx="2" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="374" y="1533" fill="#94a3b8" font-size="8">内核 / 服务 / 执行标准</text>
+        <rect x="600" y="1524" width="16" height="11" rx="2" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1"/>
+        <text x="624" y="1533" fill="#94a3b8" font-size="8">消息底座</text>
+        <rect x="740" y="1524" width="16" height="11" rx="2" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1"/>
+        <text x="764" y="1533" fill="#94a3b8" font-size="8">支柱 / 拨号器</text>
+        <rect x="930" y="1524" width="16" height="11" rx="2" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1"/>
+        <text x="954" y="1533" fill="#94a3b8" font-size="8">组件 / 基础设施</text>
+        <rect x="1140" y="1524" width="16" height="11" rx="2" fill="rgba(136,19,55,0.35)" stroke="#fb7185" stroke-width="1"/>
+        <text x="1164" y="1533" fill="#94a3b8" font-size="8">脚手架组件</text>
+        <line x1="60" y1="1550" x2="76" y2="1550" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="84" y="1553" fill="#94a3b8" font-size="8">路由命中 → 业务函数</text>
+        <line x1="300" y1="1550" x2="320" y2="1550" stroke="#fb923c" stroke-width="1.4" marker-start="url(#ahs)" marker-end="url(#ah)"/>
+        <text x="328" y="1553" fill="#94a3b8" font-size="8">双向 / 事件</text>
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header"><div class="card-dot cyan"></div><h3>分层与启动顺序</h3></div>
+        <ul>
+          <li>• 内核 → bus → 支柱(flag/config) → 业务组件</li>
+          <li>• bus 是内核之上最底层,状态唯一出口</li>
+          <li>• flag / config 是支柱,必须先上</li>
+          <li>• 宿主逐个 Enable = 手动控制启动顺序</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot violet"></div><h3>组件三类拆分</h3></div>
+        <ul>
+          <li>• 脚手架:auth / register(所有业务依赖)</li>
+          <li>• 共享:user / comment / interaction / notify…</li>
+          <li>• 业务域:博客 / 视频 / 网盘各自独有</li>
+          <li>• 跨域公共上抽,绝不按线复制</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot emerald"></div><h3>业务执行标准</h3></div>
+        <ul>
+          <li>• 路由命中 → 业务函数(参数校验 + 认证)</li>
+          <li>• 业务函数不直连服务,一律走全局拨号器</li>
+          <li>• 拨号器按服务键调用微服务,拿到结果</li>
+          <li>• 组装统一信封返回响应</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot amber"></div><h3>单体 → 多体的开关</h3></div>
+        <ul>
+          <li>• 全局拨号器是业务与微服务的唯一出口</li>
+          <li>• 单体:地址指向本进程 ≈ 直接调用</li>
+          <li>• 拆分:地址指向远程,自动跨网络 + 负载均衡</li>
+          <li>• 业务只认服务键,换部署不改业务</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer">StarDreamerChaosmos · 博客 + 视频 + 网盘 三合一 · 设计是微服务,部署是单体 · 详见 docs/10-工程规范与约定.md</p>
+  </div>
+
+  <script>
+    async function copyAsImage(btn) {
+      const orig = btn.textContent;
+      try {
+        const el = document.getElementById('report-container'); const r = el.getBoundingClientRect(); const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); btn.textContent = '✓ Copied!';
+      } catch (e) { btn.textContent = '✗ Failed'; }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+    async function downloadPNG(btn) {
+      const orig = btn.textContent; btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container'); const r = el.getBoundingClientRect(); const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const link = document.createElement('a'); link.download = 'architecture.png'; link.href = canvas.toDataURL('image/png'); link.click(); btn.textContent = '✓ Done!';
+      } catch (e) { btn.textContent = '✗ Failed'; }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+    async function downloadPDF(btn) {
+      const orig = btn.textContent; btn.textContent = '⏳ ...';
+      try {
+        const el = document.getElementById('report-container'); const r = el.getBoundingClientRect(); const pad = 32;
+        const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+        const imgData = canvas.toDataURL('image/png'); const { jsPDF } = window.jspdf;
+        const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({ orientation, unit: 'px', format: [canvas.width, canvas.height], hotfixes: ['px_scaling'] });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height); pdf.save('architecture.pdf'); btn.textContent = '✓ Done!';
+      } catch (e) { btn.textContent = '✗ Failed'; }
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+  </script>
+</body>
+</html>
