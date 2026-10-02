@@ -1,0 +1,12 @@
+# StarDreamerChaosmos 配置文件
+# 按组件名分段:每一段就是该组件的配置(顶层段 = 整组件配置)。
+# 优先级:内置默认 < 本文件 < 环境变量(如 APP_GATEWAY__ADDR、APP_USER__DB)。
+
+gateway:
+  addr: 127.0.0.1:18080
+  # web 框架后端,推荐 gin(原生路由、生态成熟;代价:路由不可摘除)。
+  # 需要组件下线自动摘路由 / 热插拔,则改用 std(自研动态路由,可注册可摘除)。
+  engine: gin
+
+user:
+  db: data/sdc.db
