@@ -25,14 +25,14 @@ func (p *Plugin) Desc() map[string]string {
 }
 func (p *Plugin) Inject() []string { return nil }
 
-func (p *Plugin) Status() *map[string]any {
+func (p *Plugin) Status() map[string]any {
 	q := p.queue()
 	if q == nil {
 		return nil
 	}
 	topics, subs := q.Stats()
 	m := map[string]any{"state": "ready", "topics": topics, "subscribers": subs, "pending": q.Pending()}
-	return &m
+	return m
 }
 
 func (p *Plugin) Register() error { return nil }

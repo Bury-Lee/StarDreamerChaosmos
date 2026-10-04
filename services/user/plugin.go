@@ -39,10 +39,10 @@ func (p *Plugin) Desc() map[string]string {
 }
 func (p *Plugin) Inject() []string { return []string{"config", "dialer", "gateway"} }
 
-func (p *Plugin) Status() *map[string]any {
+func (p *Plugin) Status() map[string]any {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return &map[string]any{"state": "ready", "db": p.dbPath}
+	return map[string]any{"state": "ready", "db": p.dbPath}
 }
 
 func (p *Plugin) Register() error { return nil }

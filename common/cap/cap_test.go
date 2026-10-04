@@ -14,7 +14,7 @@ type providerPlugin struct{ p *cap.Provider }
 func (x *providerPlugin) Name() string            { return "provider" }
 func (x *providerPlugin) Desc() map[string]string { return nil }
 func (x *providerPlugin) Inject() []string        { return nil }
-func (x *providerPlugin) Status() *map[string]any { return nil }
+func (x *providerPlugin) Status() map[string]any  { return nil }
 func (x *providerPlugin) Register() error         { return nil }
 func (x *providerPlugin) Apply(*GoTenon.GoTenonContext, any) error {
 	x.p = cap.NewProvider()
@@ -35,7 +35,7 @@ type consumerPlugin struct{ got any }
 func (x *consumerPlugin) Name() string            { return "consumer" }
 func (x *consumerPlugin) Desc() map[string]string { return nil }
 func (x *consumerPlugin) Inject() []string        { return nil }
-func (x *consumerPlugin) Status() *map[string]any { return nil }
+func (x *consumerPlugin) Status() map[string]any  { return nil }
 func (x *consumerPlugin) Register() error         { return nil }
 func (x *consumerPlugin) Apply(ctx *GoTenon.GoTenonContext, _ any) error {
 	q := ctx.SlotOf(mq.ServiceName).Value.(*mq.Queue)

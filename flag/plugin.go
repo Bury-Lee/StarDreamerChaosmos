@@ -35,7 +35,7 @@ func (p *Plugin) Desc() map[string]string {
 func (p *Plugin) Inject() []string { return nil }
 
 // Status 返回 nil:本插件不向索引上报状态。
-func (p *Plugin) Status() *map[string]any { return nil }
+func (p *Plugin) Status() map[string]any { return nil }
 
 // Register 在写入插件表之前调用(此时还没有 ctx,拿不到参数槽位)。
 func (p *Plugin) Register() error { return nil }

@@ -38,7 +38,7 @@ func (p *Plugin) Desc() map[string]string {
 }
 func (p *Plugin) Inject() []string { return nil }
 
-func (p *Plugin) Status() *map[string]any {
+func (p *Plugin) Status() map[string]any {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.holder == nil {
@@ -140,7 +140,7 @@ func (p *Plugin) Function() map[string]any {
 }
 func (p *Plugin) ExecuteFunction(any) {}
 
-func statusOf(state string, version uint64, keys int) *map[string]any {
+func statusOf(state string, version uint64, keys int) map[string]any {
 	m := map[string]any{"state": state, "version": version, "keys": keys}
-	return &m
+	return m
 }

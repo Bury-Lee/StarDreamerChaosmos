@@ -39,13 +39,13 @@ func (p *Plugin) Desc() map[string]string {
 // Inject 只依赖 config:网关的全部设置来自配置。
 func (p *Plugin) Inject() []string { return []string{"config"} }
 
-func (p *Plugin) Status() *map[string]any {
+func (p *Plugin) Status() map[string]any {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.router == nil {
 		return nil
 	}
-	return &map[string]any{"state": "ready", "addr": p.addr, "engine": p.router.Framework()}
+	return map[string]any{"state": "ready", "addr": p.addr, "engine": p.router.Framework()}
 }
 
 func (p *Plugin) Register() error { return nil }

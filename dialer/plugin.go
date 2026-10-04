@@ -26,7 +26,7 @@ func (p *Plugin) Desc() map[string]string {
 // TODO:支持在配置中自定义一些行为等
 func (p *Plugin) Inject() []string { return nil }
 
-func (p *Plugin) Status() *map[string]any {
+func (p *Plugin) Status() map[string]any {
 	p.mu.Lock()
 	d := p.holder
 	p.mu.Unlock()
@@ -34,7 +34,7 @@ func (p *Plugin) Status() *map[string]any {
 		return nil
 	}
 	m := map[string]any{"state": "ready", "conns": d.ConnCount()}
-	return &m
+	return m
 }
 
 func (p *Plugin) Register() error { return nil }
