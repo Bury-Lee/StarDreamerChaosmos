@@ -36,7 +36,15 @@ func defaultSetting() map[string]any {
 		},
 		"user": map[string]any{
 			"enable": true,
-			"db":     "data/sdc.db",
+			"db":     map[string]any{"sql_name": "sqlite", "db_name": "data/sdc.db"},
+			"jwt": map[string]any{
+				"accessExpire":       120,
+				"refreshExpire":      168,
+				"accessTokenSecret":  "sdc-access-secret-change-me",
+				"refreshTokenSecret": "sdc-refresh-secret-change-me",
+				"issuer":             "StarDreamerChaosmos",
+			},
+			"redis": map[string]any{"addr": "127.0.0.1:6379", "password": "", "db": 0},
 		},
 	}
 }

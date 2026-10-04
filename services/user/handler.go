@@ -47,7 +47,25 @@ func handleLogin(cli userv1.UserServiceClient) gateway.HandlerFunc {
 			writeErr(c, err)
 			return
 		}
-		gateway.OK(c, map[string]any{"userId": resp.GetUserId(), "token": resp.GetToken()})
+		gateway.OK(c, map[string]any{"userId": resp.GetUserId(), "token": resp.GetToken(), "refreshToken": resp.GetRefreshToken()})
+	}
+}
+
+func handleRefresh(cli userv1.UserServiceClient) gateway.HandlerFunc {
+	return func(c *gateway.Ctx) {
+		var in struct {
+			RefreshToken string `json:"refreshToken"`
+		}
+		if err := c.BindJSON(&in); err != nil {
+			gateway.Fail(c, http.StatusBadRequest, "参数不合法")
+			return
+		}
+		resp, err := cli.Refresh(c.Context(), &userv1.RefreshRequest{RefreshToken: in.RefreshToken})
+		if err != nil {
+			writeErr(c, err)
+			return
+		}
+		gateway.OK(c, map[string]any{"userId": resp.GetUserId(), "token": resp.GetToken(), "refreshToken": resp.GetRefreshToken()})
 	}
 }
 

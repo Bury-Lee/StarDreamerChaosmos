@@ -10,4 +10,16 @@ gateway:
 
 user:
   enable: true
-  db: data/sdc.db
+  db:
+    sql_name: sqlite      # sqlite | mysql | postgresql
+    db_name: data/sdc.db  # sqlite:文件路径;mysql/pgsql:库名
+  jwt:
+    accessExpire: 120        # 访问令牌有效期(分钟),缺省 120
+    refreshExpire: 168       # 刷新令牌有效期(小时),缺省 168
+    accessTokenSecret: sdc-access-secret-change-me    # 访问令牌密钥(生产务必更换)
+    refreshTokenSecret: sdc-refresh-secret-change-me  # 刷新令牌密钥(生产务必更换)
+    issuer: StarDreamerChaosmos
+  redis:                     # 组件自持的 Redis(黑名单缓存);addr 留空则仅用本地缓存
+    addr: 127.0.0.1:6379
+    password: ""
+    db: 0

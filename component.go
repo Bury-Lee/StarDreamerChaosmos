@@ -35,7 +35,18 @@ var components = []component{
 	{name: "config", plugin: config.NewPlugin(), core: true, cfg: config.Spec{
 		Defaults: map[string]any{
 			"gateway": map[string]any{"addr": "127.0.0.1:18080", "engine": "gin"},
-			"user":    map[string]any{"enable": true, "db": "data/sdc.db"},
+			"user": map[string]any{
+				"enable": true,
+				"db":     map[string]any{"sql_name": "sqlite", "db_name": "data/sdc.db"},
+				"jwt": map[string]any{
+					"accessExpire":       120,
+					"refreshExpire":      168,
+					"accessTokenSecret":  "sdc-access-secret-change-me",
+					"refreshTokenSecret": "sdc-refresh-secret-change-me",
+					"issuer":             "StarDreamerChaosmos",
+				},
+				"redis": map[string]any{"addr": "127.0.0.1:6379", "password": "", "db": 0},
+			},
 		},
 		Path: utils.ConfigPath(os.Args, "Setting.yaml"),
 	}},

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"GoTenon"
+	"StarDreamerChaosmos/common"
 	"StarDreamerChaosmos/core/config"
 	"StarDreamerChaosmos/dialer"
 	"StarDreamerChaosmos/gateway"
@@ -72,6 +73,15 @@ func main() {
 		queue.Shutdown()
 		return
 	}
+
+	// 启动选项:是否要求初始化数据库(默认否)。
+	// 组件在上线(Apply)阶段读该槽位,据此决定是否执行模型迁移——平时启动不建表。
+	boot := common.Boot{}
+	if _, _, ok := fp.InitDB(); ok {
+		boot.InitDB = true
+	}
+	root.Isolate(common.BootService)
+	root.SlotOf(common.BootService).Value = boot
 
 	// 6. 先启用 config,拿到合并后的配置快照(内置默认 < 配置文件 < 环境变量)
 	if err := m.Enable("config"); err != nil {
