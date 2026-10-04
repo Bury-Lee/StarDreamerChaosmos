@@ -39,6 +39,13 @@ func (c *Config) Snapshot(Name string) any {
 	}
 }
 
+// Section 返回某组件配置段的只读快照;不存在返回 nil。
+// 供宿主/组件省去 Snapshot 的类型断言。
+func (c *Config) Section(name string) map[string]any {
+	sec, _ := c.Snapshot(name).(map[string]any)
+	return sec
+}
+
 func (c *Config) snapshot() map[string]any {
 	if m, ok := c.snap.Load().(map[string]any); ok {
 		return m
@@ -49,7 +56,8 @@ func (c *Config) snapshot() map[string]any {
 // Spec 是宿主装载本组件时传入的规格。
 type Spec struct {
 	Defaults  map[string]any // 内置默认(最低优先级)
-	File      map[string]any // 配置文件解析结果(中优先级)
+	Path      string         // 配置文件路径(中优先级);由本组件读取解析,读不到则跳过
+	File      map[string]any // 已解析的配置(中优先级,可选;与 Path 合并,File 在前)
 	Required  []string       // 必填键(点分路径);缺失或空即报错
 	EnvPrefix string         // 环境变量前缀,默认 "APP_"
 }

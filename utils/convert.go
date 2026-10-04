@@ -66,11 +66,32 @@ func Float(m map[string]any, path string, def float64) float64 {
 	}
 }
 
-// Bool 按路径取布尔;缺失/非布尔 → def。
+// Contains 报告字符串切片是否含 s。
+func Contains(list []string, s string) bool {
+	for _, v := range list {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
+// Bool 按路径取布尔;缺失/无法识别 → def。
+// 兼容环境变量注入的字符串:"true"/"1"/"yes"/"on" 为真,"false"/"0"/"no"/"off" 为假。
 func Bool(m map[string]any, path string, def bool) bool {
-	if v, ok := Lookup(m, path); ok {
-		if b, ok := v.(bool); ok {
-			return b
+	v, ok := Lookup(m, path)
+	if !ok {
+		return def
+	}
+	switch b := v.(type) {
+	case bool:
+		return b
+	case string:
+		switch strings.ToLower(strings.TrimSpace(b)) {
+		case "true", "1", "yes", "on":
+			return true
+		case "false", "0", "no", "off":
+			return false
 		}
 	}
 	return def

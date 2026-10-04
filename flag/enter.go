@@ -5,10 +5,8 @@ import "GoTenon"
 //这里放一些硬编码的参数
 const DefaultSettingPath = "../Setting.yaml"
 
-// ArgsService 是宿主存放原始命令行参数([]string)的共享槽位名。
-const ArgsService = "host/args"
-
-// FlagsService 是解析结果(*Flags)的共享槽位名。
+// FlagsService 是解析结果(*Flags)的槽位名:由 flag 在自身 Apply 的子树内 Isolate,
+// 属组件私有槽位(原始参数改由宿主经 Register 的 cfg 传入,不再占用 root 槽位)。
 const FlagsService = "svc/flags"
 
 // TypeSettingRequest 是"请执行配置初始化 / 拷贝"的应用级消息类型:

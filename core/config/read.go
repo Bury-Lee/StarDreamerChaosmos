@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"gopkg.in/yaml.v3"
+
 	"StarDreamerChaosmos/utils"
 )
 
@@ -13,7 +15,15 @@ const defaultEnvPrefix = "APP_"
 
 // loadSnapshot 按「默认 < 文件 < 环境变量」合并并校验,产出一份只读快照。
 func loadSnapshot(spec Spec) (map[string]any, error) {
-	merged := mergeMaps(spec.Defaults, spec.File)
+	file := spec.File
+	if spec.Path != "" {
+		fm, err := readFile(spec.Path)
+		if err != nil {
+			return nil, err
+		}
+		file = mergeMaps(file, fm)
+	}
+	merged := mergeMaps(spec.Defaults, file)
 	applyEnv(merged, spec.EnvPrefix)
 	merged = normalize(merged)
 
@@ -21,6 +31,23 @@ func loadSnapshot(spec Spec) (map[string]any, error) {
 		return nil, fmt.Errorf("缺少必填项 %v", missing)
 	}
 	return merged, nil
+}
+
+// readFile 读取并解析 YAML 配置文件;文件不存在返回 (nil,nil)(视为无文件,用默认)。
+func readFile(path string) (map[string]any, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("读取配置 %s 失败: %w", path, err)
+	}
+	var m map[string]any
+	if err := yaml.Unmarshal(b, &m); err != nil {
+		return nil, fmt.Errorf("解析配置 %s 失败: %w", path, err)
+	}
+	fmt.Printf("[config] 已读配置文件 %s\n", path)
+	return m, nil
 }
 
 // mergeMaps 按层深合并,后者覆盖前者。

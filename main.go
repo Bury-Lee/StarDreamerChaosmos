@@ -2,43 +2,26 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"os/signal"
-	"sort"
-	"strings"
-	"syscall"
 	"time"
-
-	"gopkg.in/yaml.v3"
 
 	"GoTenon"
 	"StarDreamerChaosmos/core/config"
 	"StarDreamerChaosmos/dialer"
-	"StarDreamerChaosmos/flag"
 	"StarDreamerChaosmos/gateway"
 	"StarDreamerChaosmos/mq"
-	"StarDreamerChaosmos/services/user"
+	"StarDreamerChaosmos/utils"
 )
-
-// pluginNames 是组件清单:注册、启动、描述展示的单一来源。
-var pluginNames = []string{"config", "dialer", "flag", "gateway", "mq", "user"}
 
 func main() {
 	// 1. 根上下文
 	root := GoTenon.New("app")
 
-	// 2. 共享槽位:原始参数
-	root.Isolate(flag.ArgsService)
-	root.SlotOf(flag.ArgsService).Value = os.Args[0:]
-	root.Isolate(flag.FlagsService)
-
-	// 3. 宿主预挂共享能力
+	// 2. 宿主预挂"共享"能力:凡是会被别的组件(含业务组件)读取的,才上挂到 root。
+	//    仅本组件自用的槽位,由组件在自己的 Apply 里 Isolate,不在此声明。
+	cfg := config.New()
 	root.Isolate(config.ServiceName)
-	root.SlotOf(config.ServiceName).Value = config.New()
+	root.SlotOf(config.ServiceName).Value = cfg
 
 	queue := mq.New(256, 4)
 	root.Isolate(mq.ServiceName)
@@ -52,37 +35,18 @@ func main() {
 	root.Isolate(gateway.ServiceName)
 	root.SlotOf(gateway.ServiceName).Value = router
 
-	// 4. 启动内核
+	// 3. 启动内核
 	m := GoTenon.NewManager(root)
 	queue.Bind(m)
 
-	// 5. 注册插件(config 的 File 来自配置文件)
-	if _, err := m.Register(config.NewPlugin(), config.Spec{
-		Defaults: map[string]any{
-			"gateway": map[string]any{"addr": "127.0.0.1:18080", "engine": "gin"},
-			"user":    map[string]any{"db": "data/sdc.db"},
-		},
-		File: loadSetting(configPath()),
-	}); err != nil {
-		panic(err)
-	}
-	if _, err := m.Register(flag.NewPlugin(), nil); err != nil {
-		panic(err)
-	}
-	if _, err := m.Register(mq.NewPlugin(), nil); err != nil {
-		panic(err)
-	}
-	if _, err := m.Register(dialer.NewPlugin(), nil); err != nil {
-		panic(err)
-	}
-	if _, err := m.Register(gateway.NewPlugin(), nil); err != nil {
-		panic(err)
-	}
-	if _, err := m.Register(user.NewPlugin(), nil); err != nil {
-		panic(err)
+	// 4. 注册全部组件(停用的也注册:插件详情可见,且可随时由配置开启)
+	for _, c := range components {
+		if _, err := m.Register(c.plugin, c.cfg); err != nil {
+			panic(err)
+		}
 	}
 
-	// 6. 分层启动
+	// 5. 分层启动
 	if err := m.Enable("mq"); err != nil {
 		panic(err)
 	}
@@ -95,24 +59,52 @@ func main() {
 		panic(err)
 	}
 	fp := flagPlugin(m)
-	handleCommands(fp)
-	if fp != nil && fp.Help() {
-		stopBridge()
-		queue.Shutdown()
+	if fp == nil {
 		return
 	}
-	if fp != nil && fp.PluginDetails() {
-		showPlugins(m, pluginNames)
+	// 前功能(help/run/initdb/setting)已在 flag.Start 内输出;help / plugin details 输出后即退出。
+	// plugin details 需经 Manager 读活体描述,只能由宿主执行——flag 装载期回调 Manager 会死锁。
+	if fp.Exit() {
+		if fp.PluginDetails() {
+			showPlugins(m, components)
+		}
 		stopBridge()
 		queue.Shutdown()
 		return
 	}
 
-	for _, name := range []string{"config", "dialer", "gateway", "user"} {
-		if err := m.Enable(name); err != nil {
+	// 6. 先启用 config,拿到合并后的配置快照(内置默认 < 配置文件 < 环境变量)
+	if err := m.Enable("config"); err != nil {
+		panic(err)
+	}
+	started := []string{"mq", "flag", "config"}
+
+	// 7. 启用核心骨架的其余部分(dialer / gateway):固定启用,配置不可关闭
+	for _, c := range components {
+		if !c.core || utils.Contains(started, c.name) {
+			continue
+		}
+		if err := m.Enable(c.name); err != nil {
 			panic(err)
 		}
+		started = append(started, c.name)
 	}
+
+	// 8. 启用业务组件:读各组件配置段的 enable 决定开关(缺省启用)
+	for _, c := range components {
+		if c.core {
+			continue
+		}
+		if !utils.Bool(cfg.Section(c.name), "enable", true) {
+			fmt.Printf("[宿主] 组件 %s 已按配置停用\n", c.name)
+			continue
+		}
+		if err := m.Enable(c.name); err != nil {
+			panic(err)
+		}
+		started = append(started, c.name)
+	}
+
 	// 所有提供方注册完服务后,再启动拨号器的本地 gRPC server
 	d.Start()
 	// 网关:先落地已入队的路由消息,再开始接收请求
@@ -128,17 +120,18 @@ func main() {
 		panic(err)
 	}
 
-	// 7. 运行:run 指令 → 常驻;否则跑一次自测
-	if fp != nil && fp.ShouldRun() {
+	// 9. 运行:run 指令 → 常驻;否则跑一次自测
+	if fp.ShouldRun() {
 		fmt.Println("[宿主] 常驻启动,等待中断(Ctrl+C)...")
-		waitSignal()
+		utils.WaitSignal()
 	} else {
-		selfTest("http://127.0.0.1:18080")
+		selfTest("http://" + utils.Str(cfg.Section("gateway"), "addr", "127.0.0.1:18080"))
 		time.Sleep(200 * time.Millisecond)
 	}
 
-	// 8. 停机(依赖者先走):先卸载组件(触发 down 让网关摘路由),再退订
-	for _, name := range []string{"user", "gateway", "dialer", "config", "mq", "flag"} {
+	// 10. 停机(依赖者先走):逆序卸载本次启用的组件(触发 down 让网关摘路由),再退订
+	for i := len(started) - 1; i >= 0; i-- {
+		name := started[i]
 		if _, ok := m.Get(name); ok {
 			if err := m.Disable(name); err != nil {
 				panic(err)
@@ -149,127 +142,4 @@ func main() {
 	stopBridge()
 	_ = d.Close()
 	queue.Shutdown()
-}
-
-// configPath 从 os.Args 里取配置文件路径,缺省 Setting.yaml。
-func configPath() string {
-	args := os.Args[1:]
-	for i := 0; i < len(args); i++ {
-		a := args[i]
-		switch {
-		case a == "-config" || a == "--config":
-			if i+1 < len(args) {
-				return args[i+1]
-			}
-		case strings.HasPrefix(a, "-config="):
-			return strings.TrimPrefix(a, "-config=")
-		case strings.HasPrefix(a, "--config="):
-			return strings.TrimPrefix(a, "--config=")
-		}
-	}
-	return "Setting.yaml"
-}
-
-// loadSetting 读取 YAML 配置文件;读不到则返回 nil(用内置默认)。
-func loadSetting(path string) map[string]any {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		fmt.Printf("[宿主] 未读到配置文件 %s(%v),使用内置默认\n", path, err)
-		return nil
-	}
-	var m map[string]any
-	if err := yaml.Unmarshal(b, &m); err != nil {
-		fmt.Printf("[宿主] 解析配置文件 %s 失败: %v\n", path, err)
-		return nil
-	}
-	fmt.Printf("[宿主] 已读配置文件 %s\n", path)
-	return m
-}
-
-// waitSignal 阻塞直到收到中断信号。
-func waitSignal() {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	<-ch
-}
-
-func flagPlugin(m *GoTenon.Manager) *flag.Plugin {
-	rt, ok := m.Get("flag")
-	if !ok {
-		return nil
-	}
-	fp, _ := rt.Plugin.(*flag.Plugin)
-	return fp
-}
-
-func handleCommands(fp *flag.Plugin) {
-	if fp == nil {
-		return
-	}
-	if s, ok := fp.Setting(); ok {
-		fmt.Printf("[宿主] 收到 setting 指令:init=%q copy=%q type=%s\n", s.InitSetting, s.CopySetting, s.Type)
-	}
-	if fp.ShouldRun() {
-		fmt.Println("[宿主] 收到 run 指令:进入常驻")
-	}
-}
-
-func showPlugins(m *GoTenon.Manager, names []string) {
-	fmt.Println("[宿主] 组件描述(DESC):")
-	for _, name := range names {
-		rt, ok := m.Get(name)
-		if !ok {
-			continue
-		}
-		desc := rt.Plugin.Desc()
-		parts := make([]string, 0, len(desc))
-		for k, v := range desc {
-			parts = append(parts, k+"="+v)
-		}
-		sort.Strings(parts)
-		fmt.Printf("  %-10s %s\n", name, strings.Join(parts, "  "))
-	}
-}
-
-// selfTest 用 HTTP 打一遍全链路。
-func selfTest(base string) {
-	fmt.Println("== 全链路自测 ==")
-	post := func(path, body string) (int, string) {
-		resp, err := http.Post(base+path, "application/json", strings.NewReader(body))
-		if err != nil {
-			return 0, err.Error()
-		}
-		defer resp.Body.Close()
-		b, _ := io.ReadAll(resp.Body)
-		return resp.StatusCode, strings.TrimSpace(string(b))
-	}
-
-	code, body := post("/api/user/register", `{"username":"alice","password":"secret1"}`)
-	fmt.Printf("  register alice        -> %d %s\n", code, body)
-
-	code, body = post("/api/user/register", `{"username":"alice","password":"secret1"}`)
-	fmt.Printf("  register alice again  -> %d %s\n", code, body)
-
-	code, body = post("/api/user/login", `{"username":"alice","password":"secret1"}`)
-	fmt.Printf("  login alice           -> %d %s\n", code, body)
-	token := jsonToken(body)
-
-	code, body = post("/api/user/logout", `{"token":"`+token+`"}`)
-	fmt.Printf("  logout                -> %d %s\n", code, body)
-
-	code, body = post("/api/user/logout", `{"token":"`+token+`"}`)
-	fmt.Printf("  logout again          -> %d %s\n", code, body)
-
-	code, body = post("/api/user/login", `{"username":"alice","password":"wrong"}`)
-	fmt.Printf("  login wrong password  -> %d %s\n", code, body)
-}
-
-func jsonToken(body string) string {
-	var r struct {
-		Data struct {
-			Token string `json:"token"`
-		} `json:"data"`
-	}
-	_ = json.Unmarshal([]byte(body), &r)
-	return r.Data.Token
 }

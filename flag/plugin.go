@@ -41,15 +41,12 @@ func (p *Plugin) Status() *map[string]any { return nil }
 func (p *Plugin) Register() error { return nil }
 
 // Apply 解析指令,并接入 bus:订阅"组件上线",为后功能登记待办。
-func (p *Plugin) Apply(ctx *GoTenon.GoTenonContext, _ any) error {
-	// 1. 取宿主存入的原始参数,并做类型断言
-	slot := ctx.SlotOf(ArgsService)
-	if slot == nil || slot.Value == nil {
-		return fmt.Errorf("flag: 宿主未预挂 %s", ArgsService)
-	}
-	raw, ok := slot.Value.([]string)
-	if !ok {
-		return fmt.Errorf("flag: %s 期望 []string,得到 %T", ArgsService, slot.Value)
+// 参数由宿主经 Register 的 cfg 传入([]string),不再依赖宿主预挂共享槽位。
+func (p *Plugin) Apply(ctx *GoTenon.GoTenonContext, cfg any) error {
+	// 1. 取宿主经 Register 传入的原始参数
+	raw, ok := cfg.([]string)
+	if !ok || len(raw) == 0 {
+		return fmt.Errorf("flag: 需要命令行参数([]string),得到 %T", cfg)
 	}
 
 	// 2. 解析
@@ -61,10 +58,9 @@ func (p *Plugin) Apply(ctx *GoTenon.GoTenonContext, _ any) error {
 	p.out = out
 	p.mu.Unlock()
 
-	// 3. 发布结果到宿主预挂的共享槽位
-	if dst := ctx.SlotOf(FlagsService); dst != nil {
-		dst.Value = out
-	}
+	// 3. 解析结果只有本组件用:在自己的子树里 Isolate 槽位(无需宿主预挂 root)
+	ctx.Isolate(FlagsService)
+	ctx.SlotOf(FlagsService).Value = out
 
 	// 4. 接入消息队列:订阅组件上线;后功能登记待办(等目标组件上线再转发)
 	if s := ctx.SlotOf(mq.ServiceName); s != nil && s.Value != nil {
@@ -84,6 +80,9 @@ func (p *Plugin) Apply(ctx *GoTenon.GoTenonContext, _ any) error {
 
 	// 5. 可逆副作用:卸载时清空
 	ctx.Register(func() error {
+		if s := ctx.SlotOf(FlagsService); s != nil {
+			s.Value = nil
+		}
 		p.mu.Lock()
 		p.out = nil
 		p.queue = nil
@@ -108,6 +107,9 @@ func (p *Plugin) Start() error {
 	}
 	if out.run {
 		fmt.Println("[flag] 执行指令 run:启动服务")
+	}
+	if out.Setting != nil {
+		fmt.Printf("[flag] 收到 setting 指令:init=%q copy=%q type=%s\n", out.Setting.InitSetting, out.Setting.CopySetting, out.Setting.Type)
 	}
 	if out.InitDB != nil {
 		switch {
@@ -194,6 +196,12 @@ func (p *Plugin) Help() bool {
 func (p *Plugin) PluginDetails() bool {
 	out := p.snapshot()
 	return out != nil && out.pluginDetails
+}
+
+// Exit 报告前功能是否要求输出后即退出(help / plugin details)。
+func (p *Plugin) Exit() bool {
+	out := p.snapshot()
+	return out != nil && (out.help || out.pluginDetails)
 }
 
 // InitDB 返回数据库初始化指令;ok=false 表示没有该指令。

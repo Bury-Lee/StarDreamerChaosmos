@@ -43,6 +43,28 @@ func NextValue(args []string, i int, name, inline string, hasInline bool) (value
 	return args[i+1], i + 1, nil
 }
 
+// ConfigPath 从 argv(含程序名)里取 -config/--config 指定的配置文件路径;未指定返回 def。
+func ConfigPath(argv []string, def string) string {
+	args := argv
+	if len(args) > 0 {
+		args = args[1:] // 跳过程序名
+	}
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		switch {
+		case a == "-config" || a == "--config":
+			if i+1 < len(args) {
+				return args[i+1]
+			}
+		case strings.HasPrefix(a, "-config="):
+			return strings.TrimPrefix(a, "-config=")
+		case strings.HasPrefix(a, "--config="):
+			return strings.TrimPrefix(a, "--config=")
+		}
+	}
+	return def
+}
+
 // SplitList 把逗号分隔的字符串拆成去空白的列表。
 func SplitList(s string) []string {
 	var out []string

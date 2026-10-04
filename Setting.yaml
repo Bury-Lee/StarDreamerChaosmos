@@ -9,4 +9,5 @@ gateway:
   engine: gin
 
 user:
+  enable: true
   db: data/sdc.db

@@ -30,10 +30,13 @@ func defaultSetting() map[string]any {
 			"driver": "sqlite",
 			"path":   "./data/app.db",
 		},
-		"components": map[string]any{
-			"mq":     true,
-			"flag":   true,
-			"config": true,
+		"gateway": map[string]any{
+			"addr":   "127.0.0.1:18080",
+			"engine": "gin",
+		},
+		"user": map[string]any{
+			"enable": true,
+			"db":     "data/sdc.db",
 		},
 	}
 }
