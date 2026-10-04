@@ -2,3 +2,5 @@ temp/
 example/
 data/
 *.exe
+build/dist/
+dist/

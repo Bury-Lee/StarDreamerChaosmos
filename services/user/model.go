@@ -39,7 +39,7 @@ type UserModel struct {
 	Abstract      string            `gorm:"size:512" json:"abstract"`                               // 个人简介
 	Password      string            `gorm:"size:64" json:"-"`                                       // 哈希密码，不序列化到JSON
 	ContactInfo   map[string]string `gorm:"type:json;serializer:json" json:"contactInfo,omitempty"` // 联系方式，JSON格式存储
-	Email         string            `gorm:"size:128;uniqueIndex" json:"email,omitempty"`            // 邮箱，唯一索引
+	Email         *string           `gorm:"size:128;uniqueIndex" json:"email,omitempty"`            // 邮箱,唯一索引;空存 NULL 以允许多个未填邮箱
 	OpenID        string            `gorm:"size:128" json:"openID,omitempty"`                       // 第三方登录唯一ID
 	Role          RoleType          `json:"role"`                                                   // 用户角色枚举：1-管理员,2-VIP用户,3-普通用户,4-游客,5-封禁用户
 	UserConfModel *UserConfModel    `gorm:"foreignKey:UserID" json:"-"`                             // 用户配置信息，外键关联
