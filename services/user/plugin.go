@@ -6,9 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+	"gorm.io/plugin/dbresolver"
 
 	"GoTenon"
 	userv1 "StarDreamerChaosmos/api/gen/user/v1"
@@ -55,21 +57,10 @@ func (p *Plugin) Apply(ctx *GoTenon.GoTenonContext, _ any) error {
 			uc = decodeUserConfig(cfg.Section("user"))
 		}
 	}
-	// DB 缺省:sqlite + data/sdc.db
-	if uc.DB.SqlName == "" {
-		uc.DB.SqlName = DBSqliteMode
-	}
-	if uc.DB.DBName == "" {
-		uc.DB.DBName = filepath.Join("data", "sdc.db")
-	}
-
-	// 2. 开库(默认不建表)
-	if dir := filepath.Dir(uc.DB.DBName); dir != "" && dir != "." {
-		_ = os.MkdirAll(dir, 0o755)
-	}
-	db, err := gorm.Open(uc.DB.DSN(), &gorm.Config{})
+	// 2. 按「写库列表 + 读库列表」装配数据库(读写分离;读库为空时读也走写库)
+	db, dbPath, err := openDB(uc)
 	if err != nil {
-		return fmt.Errorf("user: 打开数据库失败: %w", err)
+		return err
 	}
 
 	// 3. 迁移:仅当本次启动带 initdb 指令(宿主写入启动选项)时才执行
@@ -82,7 +73,7 @@ func (p *Plugin) Apply(ctx *GoTenon.GoTenonContext, _ any) error {
 		}
 	}
 	p.mu.Lock()
-	p.dbPath = uc.DB.DBName
+	p.dbPath = dbPath
 	p.db = db
 	p.mu.Unlock()
 
@@ -138,7 +129,7 @@ func (p *Plugin) Apply(ctx *GoTenon.GoTenonContext, _ any) error {
 		return err
 	})
 
-	fmt.Printf("[user] 就绪(db=%s)\n", uc.DB.DBName)
+	fmt.Printf("[user] 就绪(db=%s)\n", dbPath)
 	return nil
 }
 
@@ -156,3 +147,68 @@ func (p *Plugin) DealWithMessage(m GoTenon.Message) error {
 
 func (p *Plugin) Function() map[string]any { return nil }
 func (p *Plugin) ExecuteFunction(any)      {}
+
+// openDB 按「写库列表 + 读库列表」装配数据库连接(读写分离):
+//   - 至少一个写库;缺省为单个 sqlite(data/sdc.db);
+//   - 读库非空时注册读写分离:读走 Replicas(随机负载均衡),写走 Sources;
+//   - 读库为空时,读请求也落到写库。
+//
+// 返回主连接、主库名(用于展示)。
+func openDB(uc UserConfig) (*gorm.DB, string, error) {
+	writes := uc.DBWrite
+	if len(writes) == 0 {
+		writes = []DB{{SqlName: DBSqliteMode, DBName: filepath.Join("data", "sdc.db")}}
+	}
+	// 缺省字段 + 建父目录
+	for i := range writes {
+		if writes[i].SqlName == "" {
+			writes[i].SqlName = DBSqliteMode
+		}
+		if writes[i].DBName == "" {
+			writes[i].DBName = filepath.Join("data", "sdc.db")
+		}
+		if dir := filepath.Dir(writes[i].DBName); dir != "" && dir != "." {
+			_ = os.MkdirAll(dir, 0o755)
+		}
+	}
+
+	// 所有库的驱动必须一致(参考做法)
+	all := make([]DB, 0, len(writes)+len(uc.DBRead))
+	all = append(all, writes...)
+	all = append(all, uc.DBRead...)
+	for i := 1; i < len(all); i++ {
+		if all[i].SqlName != all[0].SqlName {
+			return nil, "", fmt.Errorf("user: 数据库配置错误: 驱动不一致(%s != %s)", all[i].SqlName, all[0].SqlName)
+		}
+	}
+
+	sources := make([]gorm.Dialector, len(writes))
+	for i := range writes {
+		sources[i] = writes[i].DSN()
+	}
+	db, err := gorm.Open(sources[0], &gorm.Config{})
+	if err != nil {
+		return nil, "", fmt.Errorf("user: 打开数据库失败: %w", err)
+	}
+	// 连接池(参考做法)
+	if sqlDB, err := db.DB(); err == nil {
+		sqlDB.SetMaxIdleConns(10)
+		sqlDB.SetMaxOpenConns(100)
+		sqlDB.SetConnMaxLifetime(time.Hour)
+	}
+
+	if len(uc.DBRead) > 0 {
+		replicas := make([]gorm.Dialector, len(uc.DBRead))
+		for i := range uc.DBRead {
+			replicas[i] = uc.DBRead[i].DSN()
+		}
+		if err := db.Use(dbresolver.Register(dbresolver.Config{
+			Sources:  sources,                   // 写库
+			Replicas: replicas,                  // 读库
+			Policy:   dbresolver.RandomPolicy{}, // 读库之间随机负载均衡
+		})); err != nil {
+			return nil, "", fmt.Errorf("user: 配置读写分离失败: %w", err)
+		}
+	}
+	return db, writes[0].DBName, nil
+}

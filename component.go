@@ -36,8 +36,9 @@ var components = []component{
 		Defaults: map[string]any{
 			"gateway": map[string]any{"addr": "127.0.0.1:18080", "engine": "gin"},
 			"user": map[string]any{
-				"enable": true,
-				"db":     map[string]any{"sql_name": "sqlite", "db_name": "data/sdc.db"},
+				"enable":  true,
+				"dbWrite": []any{map[string]any{"sql_name": "sqlite", "db_name": "data/sdc.db"}},
+				"dbRead":  []any{},
 				"jwt": map[string]any{
 					"accessExpire":       120,
 					"refreshExpire":      168,

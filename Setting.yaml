@@ -10,9 +10,10 @@ gateway:
 
 user:
   enable: true
-  db:
-    sql_name: sqlite      # sqlite | mysql | postgresql
-    db_name: data/sdc.db  # sqlite:文件路径;mysql/pgsql:库名
+  dbWrite:                # 写库列表(至少一个)
+    - sql_name: sqlite    # sqlite | mysql | postgresql
+      db_name: data/sdc.db # sqlite:文件路径;mysql/pgsql:库名
+  dbRead: []              # 读库列表(可空;为空则读请求也落到写库)
   jwt:
     accessExpire: 120        # 访问令牌有效期(分钟),缺省 120
     refreshExpire: 168       # 刷新令牌有效期(小时),缺省 168

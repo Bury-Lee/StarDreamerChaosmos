@@ -18,10 +18,11 @@ import (
 // UserConfig 用户组件的独立配置:通过配置组件的公有槽读取本段,整体反序列化后装配。
 // 组件自持其基础资源(DB/Redis/邮箱等)与业务配置(Jwt)。
 type UserConfig struct {
-	DB    DB    `yaml:"db"`
-	Jwt   Jwt   `yaml:"jwt"`
-	Redis Redis `yaml:"redis"`
-	Email Email `yaml:"email"`
+	DBWrite []DB  `yaml:"dbwrite"` // 写库列表(至少一个;读写分离的"写"侧)
+	DBRead  []DB  `yaml:"dbread"`  // 读库列表(可空;为空则读请求也落到写库)
+	Jwt     Jwt   `yaml:"jwt"`
+	Redis   Redis `yaml:"redis"`
+	Email   Email `yaml:"email"`
 }
 
 // Redis 是组件自持的 Redis 连接配置(用于黑名单等缓存)。
@@ -74,10 +75,10 @@ func CheckPassword(password, hash string) bool {
 }
 
 type Jwt struct {
-	AccessExpire       int    `yaml:"accessExpire"`       //过期时间,单位为分钟
-	RefreshExpire      int    `yaml:"refreshExpire"`      //刷新令牌过期时间,单位为小时
-	AccessTokenSecret  string `yaml:"accessTokenSecret"`  //JWT密钥
-	RefreshTokenSecret string `yaml:"refreshTokenSecret"` //刷新令牌密钥
+	AccessExpire       int    `yaml:"accessexpire"`       //过期时间,单位为分钟
+	RefreshExpire      int    `yaml:"refreshexpire"`      //刷新令牌过期时间,单位为小时
+	AccessTokenSecret  string `yaml:"accesstokensecret"`  //JWT密钥
+	RefreshTokenSecret string `yaml:"refreshtokensecret"` //刷新令牌密钥
 	Issuer             string `yaml:"issuer"`             //JWT签发者
 }
 
@@ -129,9 +130,9 @@ func (db *DB) DSN() gorm.Dialector {
 type Email struct { //邮箱
 	Domain       string `yaml:"domain" json:"domain"`             // 邮箱域名
 	Port         int    `yaml:"port" json:"port"`                 // 邮箱SMTP服务器端口
-	SendEmail    string `yaml:"sendEmail" json:"sendEmail"`       // 发送邮箱
-	AuthCode     string `yaml:"authCode" json:"authCode"`         // api代码一类的?
-	SendNickname string `yaml:"sendNickname" json:"sendNickname"` // 发信人昵称
-	SSL          bool   `yaml:"SSL" json:"SSL"`                   // 是否启用SSL
-	TLS          bool   `yaml:"TLS" json:"TLS"`                   // 是否启用TLS
+	SendEmail    string `yaml:"sendemail" json:"sendEmail"`       // 发送邮箱
+	AuthCode     string `yaml:"authcode" json:"authCode"`         // api代码一类的?
+	SendNickname string `yaml:"sendnickname" json:"sendNickname"` // 发信人昵称
+	SSL          bool   `yaml:"ssl" json:"SSL"`                   // 是否启用SSL
+	TLS          bool   `yaml:"tls" json:"TLS"`                   // 是否启用TLS
 }
